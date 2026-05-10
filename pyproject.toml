@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ragtripwire"
+version = "0.1.0"
+description = "Prompt-injection test kit for RAG apps. Plant malicious documents, query the endpoint, get a pass/fail report."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+authors = [{ name = "ragtripwire contributors" }]
+keywords = ["prompt-injection", "rag", "llm", "security", "ai", "owasp"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Security",
+]
+dependencies = [
+  "click>=8.1",
+  "httpx>=0.27",
+  "rich>=13.7",
+  "pyyaml>=6.0",
+]
+
+[project.scripts]
+ragtripwire = "ragtripwire.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/David-Wu1119/ragtripwire"
+Issues = "https://github.com/David-Wu1119/ragtripwire/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ragtripwire = ["fixtures/*.md"]
