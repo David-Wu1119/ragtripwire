@@ -1,5 +1,9 @@
 # ragtripwire
 
+[![ci](https://github.com/David-Wu1119/ragtripwire/actions/workflows/ci.yml/badge.svg)](https://github.com/David-Wu1119/ragtripwire/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+
 > Plant prompt-injection attacks into a RAG corpus, query the endpoint, get a pass/fail report.
 
 `ragtripwire` ships a curated library of prompt-injection attacks (OWASP LLM01, data exfiltration, tool-use manipulation, persona hijack, citation laundering, zero-width unicode payloads). It plants them into your existing document corpus, hits your RAG endpoint with the matching query, and reports which attacks succeeded.

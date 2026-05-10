@@ -1,0 +1,83 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    name: smoke (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: CLI loads
+        run: |
+          ragtripwire --version
+          ragtripwire --help
+          ragtripwire list
+
+      - name: init writes fixtures
+        run: |
+          ragtripwire init --out _ci_fixtures
+          test -f _ci_fixtures/attacks.json
+          test -f _ci_fixtures/direct-instruction-override.md
+
+      - name: end-to-end eval against mock endpoint
+        run: |
+          python tests/mock_endpoint.py 8765 &
+          MOCK_PID=$!
+          # poll instead of sleeping blind
+          for i in 1 2 3 4 5; do
+            curl -fsS -X POST -H 'content-type: application/json' \
+              -d '{"messages":[{"role":"user","content":"ping"}]}' \
+              http://127.0.0.1:8765/chat > /dev/null && break
+            sleep 1
+          done
+          set +e
+          ragtripwire eval --endpoint http://127.0.0.1:8765/chat --out report.json
+          CODE=$?
+          set -e
+          kill $MOCK_PID || true
+          # mock obeys 3 of 7 attacks → expect exit 2 (high-sev injection)
+          test "$CODE" = "2"
+          python -c "import json; r=json.load(open('report.json')); assert r['summary']['total']==7 and r['summary']['injected']==3, r['summary']"
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ragtripwire-report-py${{ matrix.python-version }}
+          path: report.json
+          if-no-files-found: ignore
+
+  build:
+    name: build sdist + wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
