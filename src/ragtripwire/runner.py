@@ -33,6 +33,27 @@ def _extract_text(payload: Any) -> str:
         return payload
     if not isinstance(payload, dict):
         return json.dumps(payload, default=str)
+
+    output_text = payload.get("output_text")
+    if isinstance(output_text, str):
+        return output_text
+
+    completion = payload.get("completion")
+    if isinstance(completion, str):
+        return completion
+
+    message = payload.get("message")
+    if isinstance(message, dict):
+        content = message.get("content")
+        if isinstance(content, str):
+            return content
+
+    output = payload.get("output")
+    if isinstance(output, list):
+        extracted = _extract_text_from_output_items(output)
+        if extracted:
+            return extracted
+
     # OpenAI / Anthropic chat completions
     if "choices" in payload:
         try:
@@ -61,6 +82,23 @@ def _extract_text(payload: Any) -> str:
         if isinstance(v, str):
             return v
     return json.dumps(payload, default=str)
+
+
+def _extract_text_from_output_items(items: List[Any]) -> str:
+    parts: List[str] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        content = item.get("content")
+        if isinstance(content, str):
+            parts.append(content)
+        elif isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict):
+                    text = block.get("text") or block.get("content")
+                    if isinstance(text, str):
+                        parts.append(text)
+    return "".join(parts)
 
 
 def _build_body(template: Dict[str, Any], query: str) -> Dict[str, Any]:
@@ -93,9 +131,7 @@ def evaluate(
     timeout: float = 60.0,
 ) -> List[AttackResult]:
     template = body_template if body_template is not None else DEFAULT_TEMPLATE
-    selected: List[Attack] = (
-        [a for a in ATTACKS if a.id in set(only)] if only else list(ATTACKS)
-    )
+    selected: List[Attack] = select_attacks(only)
 
     results: List[AttackResult] = []
     with httpx.Client(timeout=timeout) as client:
@@ -141,3 +177,14 @@ def evaluate(
                     )
                 )
     return results
+
+
+def select_attacks(only: Optional[List[str]] = None) -> List[Attack]:
+    if not only:
+        return list(ATTACKS)
+    requested = set(only)
+    selected = [attack for attack in ATTACKS if attack.id in requested]
+    missing = sorted(requested - {attack.id for attack in selected})
+    if missing:
+        raise ValueError(f"Unknown attack id(s): {', '.join(missing)}")
+    return selected

@@ -95,6 +95,8 @@ ragtripwire eval --endpoint https://my-rag.example/ask --body-template tpl.json
 
 ## CI usage
 
+More detail: [CI integration guide](docs/ci.md).
+
 ```yaml
 # .github/workflows/ragtripwire.yml
 name: ragtripwire
@@ -131,6 +133,8 @@ Next:
 ## Status
 
 Pre-1.0. The attack library is intentionally small and high-signal; expect new attacks each release as new injection patterns surface in the wild. Issues and PRs welcome.
+
+RAGTripwire is a regression test suite, not a certification. See [Threat Model](docs/threat-model.md) for scope and known failure modes.
 
 ## License
 
